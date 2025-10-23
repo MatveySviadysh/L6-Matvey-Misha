@@ -7,18 +7,38 @@ async function renderTodos() {
     try {
         const todos = await apiService.getAllTodos();
         const searchTerm = window.currentSearchTerm || '';
+        const selectedUserId = localStorage.getItem('selectedUserId');
         
-        const filteredTodos = todos.filter(todo => 
+        let filteredTodos = todos;
+        
+        if (selectedUserId) {
+            filteredTodos = todos.filter(todo => todo.userId == selectedUserId);
+        }
+        
+        filteredTodos = filteredTodos.filter(todo => 
             todo.title.toLowerCase().includes(searchTerm)
         );
         
+        const backButton = selectedUserId ? '<a href="#users" class="btn btn-primary mb-2">← Назад к пользователям</a>' : '';
+        
+        const users = await apiService.getAllUsers();
+        
+        const todoCards = filteredTodos.map(todo => renderTodoCard(todo, users));
+        
         container.innerHTML = `
+            ${backButton}
             <h1 class="page-title">Задачи (${filteredTodos.length})</h1>
             ${renderTodoForm()}
             <div class="todos-list">
-                ${filteredTodos.map(todo => renderTodoCard(todo)).join('')}
+                ${todoCards.join('')}
             </div>
         `;
+        
+        const todoForm = container.querySelector('#addTodoForm');
+        if (todoForm && !todoForm.hasAttribute('data-listener-added')) {
+            todoForm.addEventListener('submit', handleAddTodoSubmit);
+            todoForm.setAttribute('data-listener-added', 'true');
+        }
         
     } catch (error) {
         container.innerHTML = '<div class="card"><p>Ошибка при загрузке задач</p></div>';
@@ -28,9 +48,15 @@ async function renderTodos() {
     return container;
 }
 
-function renderTodoCard(todo) {
+function renderTodoCard(todo, users = []) {
     const statusClass = todo.completed ? 'todo-completed' : 'todo-pending';
     const statusText = todo.completed ? 'Выполнено' : 'В процессе';
+    
+    let userName = `ID пользователя: ${todo.userId}`;
+    const user = users.find(u => u.id == todo.userId);
+    if (user) {
+        userName = `Пользователь: ${user.name}`;
+    }
     
     return `
         <div class="card todo-card">
@@ -38,7 +64,7 @@ function renderTodoCard(todo) {
                 <div>
                     <h3>${todo.title}</h3>
                     <p class="${statusClass}">Статус: ${statusText}</p>
-                    <p class="text-muted text-small">ID пользователя: ${todo.userId}</p>
+                    <p class="text-muted text-small">${userName}</p>
                 </div>
             </div>
         </div>
@@ -46,6 +72,7 @@ function renderTodoCard(todo) {
 }
 
 function renderTodoForm() {
+    const selectedUserId = localStorage.getItem('selectedUserId') || '';
     return `
         <div class="form-container">
             <h3>Добавить новую задачу</h3>
@@ -56,7 +83,7 @@ function renderTodoForm() {
                 </div>
                 <div class="form-group">
                     <label for="todoUserId">ID пользователя:</label>
-                    <input type="number" id="todoUserId" class="form-control" required>
+                    <input type="number" id="todoUserId" class="form-control" value="${selectedUserId}" required>
                 </div>
                 <div class="form-group">
                     <label>
@@ -70,14 +97,6 @@ function renderTodoForm() {
     `;
 }
 
-document.addEventListener('click', function(event) {
-    if (event.target && event.target.closest('#addTodoForm')) {
-        const form = event.target.closest('#addTodoForm');
-        if (form) {
-            form.addEventListener('submit', handleAddTodoSubmit);
-        }
-    }
-});
 
 function handleAddTodoSubmit(event) {
     event.preventDefault();
@@ -92,12 +111,7 @@ function handleAddTodoSubmit(event) {
     
     event.target.reset();
     
-    renderTodos().then(todosComponent => {
-        const app = document.getElementById('app');
-        const contentContainer = app.querySelector('.content-container');
-        contentContainer.innerHTML = '';
-        contentContainer.appendChild(todosComponent);
-    });
+    router.handleRouteChange();
     
     alert('Задача успешно добавлена!');
 }
