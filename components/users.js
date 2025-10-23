@@ -25,6 +25,12 @@ async function renderUsers() {
             btn.addEventListener('click', handleDeleteUser);
         });
         
+        const userForm = container.querySelector('#addUserForm');
+        if (userForm && !userForm.hasAttribute('data-listener-added')) {
+            userForm.addEventListener('submit', handleAddUserSubmit);
+            userForm.setAttribute('data-listener-added', 'true');
+        }
+        
     } catch (error) {
         container.innerHTML = '<div class="card"><p>Ошибка при загрузке пользователей</p></div>';
         console.error('Error rendering users:', error);
@@ -56,10 +62,10 @@ function renderUserCard(user) {
                 </div>
             </div>
             <div class="mt-2">
-                <a href="#users#todos" class="btn btn-primary" onclick="localStorage.setItem('selectedUserId', ${user.id})">
+                <a href="#todos" class="btn btn-primary" onclick="localStorage.setItem('selectedUserId', ${user.id})">
                     Задачи
                 </a>
-                <a href="#users#posts" class="btn btn-primary ml-2" onclick="localStorage.setItem('selectedUserId', ${user.id})">
+                <a href="#posts" class="btn btn-primary ml-2" onclick="localStorage.setItem('selectedUserId', ${user.id})">
                     Посты
                 </a>
             </div>
@@ -103,23 +109,10 @@ function handleDeleteUser(event) {
     
     if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
         apiService.deleteUserFromLS(userId);
-        renderUsers().then(usersComponent => {
-            const app = document.getElementById('app');
-            const contentContainer = app.querySelector('.content-container');
-            contentContainer.innerHTML = '';
-            contentContainer.appendChild(usersComponent);
-        });
+        router.handleRouteChange();
     }
 }
 
-document.addEventListener('click', function(event) {
-    if (event.target && event.target.closest('#addUserForm')) {
-        const form = event.target.closest('#addUserForm');
-        if (form) {
-            form.addEventListener('submit', handleAddUserSubmit);
-        }
-    }
-});
 
 function handleAddUserSubmit(event) {
     event.preventDefault();
@@ -138,12 +131,7 @@ function handleAddUserSubmit(event) {
     
     event.target.reset();
     
-    renderUsers().then(usersComponent => {
-        const app = document.getElementById('app');
-        const contentContainer = app.querySelector('.content-container');
-        contentContainer.innerHTML = '';
-        contentContainer.appendChild(usersComponent);
-    });
+    router.handleRouteChange();
     
     alert('Пользователь успешно добавлен!');
 }
