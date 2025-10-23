@@ -43,3 +43,5 @@ function renderPostCard(post) {
         </div>
     `;
 }
+
+
