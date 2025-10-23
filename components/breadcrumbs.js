@@ -12,11 +12,13 @@ function renderBreadcrumbs(currentHash) {
         };
     });
 
-    breadcrumbs.unshift({
-        path: '#users',
-        name: 'Главная',
-        isLast: false
-    });
+    if (routes[0] !== 'users') {
+        breadcrumbs.unshift({
+            path: '#users',
+            name: 'Главная',
+            isLast: false
+        });
+    }
 
     let breadcrumbsHTML = '<nav class="breadcrumbs"><ul>';
     
