@@ -142,12 +142,13 @@ class ApiService {
         }
     }
 
-    toggleTodoStatus(todoId) {
+    toggleTodoStatus(todoId, currentCompleted) {
         // First try custom todos
         const todos = this.getTodosFromLS();
         const idx = todos.findIndex(t => t.id === todoId);
         if (idx !== -1) {
-            todos[idx] = { ...todos[idx], completed: !todos[idx].completed };
+            const next = typeof currentCompleted === 'boolean' ? !currentCompleted : !todos[idx].completed;
+            todos[idx] = { ...todos[idx], completed: next };
             localStorage.setItem('customTodos', JSON.stringify(todos));
             return todos[idx];
         }
@@ -155,10 +156,11 @@ class ApiService {
         const overrides = this.getOverrides('todoOverrides');
         const oIdx = overrides.findIndex(o => o.id === todoId);
         if (oIdx !== -1) {
-            overrides[oIdx] = { ...overrides[oIdx], completed: !overrides[oIdx].completed };
+            const next = typeof currentCompleted === 'boolean' ? !currentCompleted : !overrides[oIdx].completed;
+            overrides[oIdx] = { ...overrides[oIdx], completed: next };
         } else {
-            // default to true as toggle, but we need current value; assume false then toggle to true
-            overrides.push({ id: todoId, completed: true });
+            const next = typeof currentCompleted === 'boolean' ? !currentCompleted : true;
+            overrides.push({ id: todoId, completed: next });
         }
         this.saveOverrides('todoOverrides', overrides);
         return overrides.find(o => o.id === todoId);

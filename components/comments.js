@@ -30,10 +30,19 @@ async function renderComments() {
         container.innerHTML = `
             ${backButton}
             <h1 class="page-title">Комментарии (${filteredComments.length})</h1>
+            ${renderCommentForm()}
             <div class="comments-list">
                 ${commentCards.join('')}
             </div>
         `;
+        const commentForm = container.querySelector('#addCommentForm');
+        if (commentForm && !commentForm.hasAttribute('data-listener-added')) {
+            commentForm.addEventListener('submit', handleAddCommentSubmit);
+            commentForm.setAttribute('data-listener-added', 'true');
+        }
+        container.querySelectorAll('.delete-comment-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteComment);
+        });
         
     } catch (error) {
         container.innerHTML = '<div class="card"><p>Ошибка при загрузке комментариев</p></div>';
@@ -58,6 +67,59 @@ function renderCommentCard(comment, posts = []) {
             <div class="text-muted text-small">
                 ${postInfo}
             </div>
+            <div class="mt-2 d-flex justify-end">
+                <button class="btn btn-danger delete-comment-btn" data-comment-id="${comment.id}">Удалить</button>
+            </div>
         </div>
     `;
+}
+
+function renderCommentForm() {
+    const selectedPostId = localStorage.getItem('selectedPostId') || '';
+    return `
+        <div class="form-container">
+            <h3>Добавить комментарий</h3>
+            <form id="addCommentForm">
+                <div class="form-group">
+                    <label for="commentName">Заголовок:</label>
+                    <input type="text" id="commentName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentEmail">Email:</label>
+                    <input type="email" id="commentEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentBody">Текст:</label>
+                    <textarea id="commentBody" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="commentPostId">ID поста:</label>
+                    <input type="number" id="commentPostId" class="form-control" value="${selectedPostId}" required>
+                </div>
+                <button type="submit" class="btn btn-success">Добавить комментарий</button>
+            </form>
+        </div>
+    `;
+}
+
+function handleAddCommentSubmit(event) {
+    event.preventDefault();
+    const formData = {
+        name: document.getElementById('commentName').value,
+        email: document.getElementById('commentEmail').value,
+        body: document.getElementById('commentBody').value,
+        postId: parseInt(document.getElementById('commentPostId').value)
+    };
+    apiService.saveCommentToLS(formData);
+    event.target.reset();
+    router.handleRouteChange();
+    alert('Комментарий добавлен!');
+}
+
+function handleDeleteComment(event) {
+    const id = parseInt(event.target.dataset.commentId);
+    if (confirm('Удалить комментарий?')) {
+        apiService.deleteComment(id);
+        router.handleRouteChange();
+    }
 }

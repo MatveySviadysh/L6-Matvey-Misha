@@ -39,6 +39,12 @@ async function renderTodos() {
             todoForm.addEventListener('submit', handleAddTodoSubmit);
             todoForm.setAttribute('data-listener-added', 'true');
         }
+        container.querySelectorAll('.delete-todo-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteTodo);
+        });
+        container.querySelectorAll('.toggle-todo-btn').forEach(btn => {
+            btn.addEventListener('click', handleToggleTodo);
+        });
         
     } catch (error) {
         container.innerHTML = '<div class="card"><p>Ошибка при загрузке задач</p></div>';
@@ -65,6 +71,10 @@ function renderTodoCard(todo, users = []) {
                     <h3>${todo.title}</h3>
                     <p class="${statusClass}">Статус: ${statusText}</p>
                     <p class="text-muted text-small">${userName}</p>
+                </div>
+                <div>
+                    <button class="btn btn-secondary toggle-todo-btn" data-todo-id="${todo.id}" data-completed="${!!todo.completed}">Переключить статус</button>
+                    <button class="btn btn-danger ml-2 delete-todo-btn" data-todo-id="${todo.id}">Удалить</button>
                 </div>
             </div>
         </div>
@@ -114,4 +124,20 @@ function handleAddTodoSubmit(event) {
     router.handleRouteChange();
     
     alert('Задача успешно добавлена!');
+}
+
+function handleDeleteTodo(event) {
+    const id = parseInt(event.target.dataset.todoId);
+    if (confirm('Удалить задачу?')) {
+        apiService.deleteTodo(id);
+        router.handleRouteChange();
+    }
+}
+
+function handleToggleTodo(event) {
+    const id = parseInt(event.target.dataset.todoId);
+    const completedAttr = event.target.dataset.completed;
+    const currentCompleted = completedAttr === 'true';
+    apiService.toggleTodoStatus(id, currentCompleted);
+    router.handleRouteChange();
 }

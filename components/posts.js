@@ -29,11 +29,19 @@ async function renderPosts() {
         container.innerHTML = `
             ${backButton}
             <h1 class="page-title">Посты (${filteredPosts.length})</h1>
+            ${renderPostForm()}
             <div class="posts-list">
                 ${postCards.join('')}
             </div>
         `;
-        
+        const postForm = container.querySelector('#addPostForm');
+        if (postForm && !postForm.hasAttribute('data-listener-added')) {
+            postForm.addEventListener('submit', handleAddPostSubmit);
+            postForm.setAttribute('data-listener-added', 'true');
+        }
+        container.querySelectorAll('.delete-post-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeletePost);
+        });
     } catch (error) {
         container.innerHTML = '<div class="card"><p>Ошибка при загрузке постов</p></div>';
         console.error('Error rendering posts:', error);
@@ -60,8 +68,54 @@ function renderPostCard(post, users = []) {
                     Комментарии
                 </a>
             </div>
+            <div class="mt-2 d-flex justify-end">
+                <button class="btn btn-danger delete-post-btn" data-post-id="${post.id}">Удалить</button>
+            </div>
         </div>
     `;
 }
 
+function renderPostForm() {
+    const selectedUserId = localStorage.getItem('selectedUserId') || '';
+    return `
+        <div class="form-container">
+            <h3>Добавить новый пост</h3>
+            <form id="addPostForm">
+                <div class="form-group">
+                    <label for="postTitle">Заголовок:</label>
+                    <input type="text" id="postTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="postBody">Текст:</label>
+                    <textarea id="postBody" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="postUserId">ID пользователя:</label>
+                    <input type="number" id="postUserId" class="form-control" value="${selectedUserId}" required>
+                </div>
+                <button type="submit" class="btn btn-success">Добавить пост</button>
+            </form>
+        </div>
+    `;
+}
 
+function handleAddPostSubmit(event) {
+    event.preventDefault();
+    const formData = {
+        title: document.getElementById('postTitle').value,
+        body: document.getElementById('postBody').value,
+        userId: parseInt(document.getElementById('postUserId').value)
+    };
+    apiService.savePostToLS(formData);
+    event.target.reset();
+    router.handleRouteChange();
+    alert('Пост успешно добавлен!');
+}
+
+function handleDeletePost(event) {
+    const id = parseInt(event.target.dataset.postId);
+    if (confirm('Удалить пост?')) {
+        apiService.deletePost(id);
+        router.handleRouteChange();
+    }
+}
