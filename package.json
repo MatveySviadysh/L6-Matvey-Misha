@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "chai": "^6.2.0",
+    "jest": "^27.5.1",
+    "mocha": "^11.7.4"
+  }
+}

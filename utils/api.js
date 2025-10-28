@@ -51,6 +51,30 @@ class ApiService {
         }
     }
 
+    // ---------- helpers for deletions/overrides ----------
+    getDeletedIds(key) {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : [];
+    }
+
+    markDeleted(key, id) {
+        const ids = this.getDeletedIds(key);
+        if (!ids.includes(id)) {
+            ids.push(id);
+            localStorage.setItem(key, JSON.stringify(ids));
+        }
+        return ids;
+    }
+
+    getOverrides(key) {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : [];
+    }
+
+    saveOverrides(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+
     getUsersFromLS() {
         const users = localStorage.getItem('customUsers');
         return users ? JSON.parse(users) : [];
@@ -75,6 +99,16 @@ class ApiService {
         return filteredUsers;
     }
 
+    deleteUser(userId) {
+        const users = this.getUsersFromLS();
+        const existsCustom = users.some(u => u.id === userId);
+        if (existsCustom) {
+            this.deleteUserFromLS(userId);
+        } else {
+            this.markDeleted('deletedUsers', userId);
+        }
+    }
+
     getTodosFromLS() {
         const todos = localStorage.getItem('customTodos');
         return todos ? JSON.parse(todos) : [];
@@ -92,12 +126,52 @@ class ApiService {
         return newTodo;
     }
 
+    deleteTodoFromLS(todoId) {
+        const todos = this.getTodosFromLS();
+        const filtered = todos.filter(t => t.id !== todoId);
+        localStorage.setItem('customTodos', JSON.stringify(filtered));
+        return filtered;
+    }
+
+    deleteTodo(todoId) {
+        const existsCustom = this.getTodosFromLS().some(t => t.id === todoId);
+        if (existsCustom) {
+            this.deleteTodoFromLS(todoId);
+        } else {
+            this.markDeleted('deletedTodos', todoId);
+        }
+    }
+
+    toggleTodoStatus(todoId) {
+        // First try custom todos
+        const todos = this.getTodosFromLS();
+        const idx = todos.findIndex(t => t.id === todoId);
+        if (idx !== -1) {
+            todos[idx] = { ...todos[idx], completed: !todos[idx].completed };
+            localStorage.setItem('customTodos', JSON.stringify(todos));
+            return todos[idx];
+        }
+        // Save override for API todo
+        const overrides = this.getOverrides('todoOverrides');
+        const oIdx = overrides.findIndex(o => o.id === todoId);
+        if (oIdx !== -1) {
+            overrides[oIdx] = { ...overrides[oIdx], completed: !overrides[oIdx].completed };
+        } else {
+            // default to true as toggle, but we need current value; assume false then toggle to true
+            overrides.push({ id: todoId, completed: true });
+        }
+        this.saveOverrides('todoOverrides', overrides);
+        return overrides.find(o => o.id === todoId);
+    }
+
     async getAllUsers() {
         const [apiUsers, lsUsers] = await Promise.all([
             this.getUsers(),
             Promise.resolve(this.getUsersFromLS())
         ]);
-        return [...apiUsers, ...lsUsers];
+        const deleted = this.getDeletedIds('deletedUsers');
+        const filteredApi = apiUsers.filter(u => !deleted.includes(u.id));
+        return [...filteredApi, ...lsUsers];
     }
 
     async getAllTodos() {
@@ -105,15 +179,93 @@ class ApiService {
             this.getTodos(),
             Promise.resolve(this.getTodosFromLS())
         ]);
-        return [...apiTodos, ...lsTodos];
+        const deleted = this.getDeletedIds('deletedTodos');
+        const overrides = this.getOverrides('todoOverrides');
+        const filteredApi = apiTodos
+            .filter(t => !deleted.includes(t.id))
+            .map(t => {
+                const o = overrides.find(o => o.id === t.id);
+                return o ? { ...t, completed: o.completed } : t;
+            });
+        return [...filteredApi, ...lsTodos];
+    }
+
+    getPostsFromLS() {
+        const posts = localStorage.getItem('customPosts');
+        return posts ? JSON.parse(posts) : [];
+    }
+
+    savePostToLS(post) {
+        const posts = this.getPostsFromLS();
+        const newPost = { ...post, id: Date.now(), isCustom: true };
+        posts.push(newPost);
+        localStorage.setItem('customPosts', JSON.stringify(posts));
+        return newPost;
+    }
+
+    deletePostFromLS(postId) {
+        const posts = this.getPostsFromLS();
+        const filtered = posts.filter(p => p.id !== postId);
+        localStorage.setItem('customPosts', JSON.stringify(filtered));
+        return filtered;
+    }
+
+    deletePost(postId) {
+        const existsCustom = this.getPostsFromLS().some(p => p.id === postId);
+        if (existsCustom) {
+            this.deletePostFromLS(postId);
+        } else {
+            this.markDeleted('deletedPosts', postId);
+        }
     }
 
     async getAllPosts() {
-        return await this.getPosts();
+        const [apiPosts, lsPosts] = await Promise.all([
+            this.getPosts(),
+            Promise.resolve(this.getPostsFromLS())
+        ]);
+        const deleted = this.getDeletedIds('deletedPosts');
+        const filteredApi = apiPosts.filter(p => !deleted.includes(p.id));
+        return [...filteredApi, ...lsPosts];
+    }
+
+    getCommentsFromLS() {
+        const comments = localStorage.getItem('customComments');
+        return comments ? JSON.parse(comments) : [];
+    }
+
+    saveCommentToLS(comment) {
+        const comments = this.getCommentsFromLS();
+        const newComment = { ...comment, id: Date.now(), isCustom: true };
+        comments.push(newComment);
+        localStorage.setItem('customComments', JSON.stringify(comments));
+        return newComment;
+    }
+
+    deleteCommentFromLS(commentId) {
+        const comments = this.getCommentsFromLS();
+        const filtered = comments.filter(c => c.id !== commentId);
+        localStorage.setItem('customComments', JSON.stringify(filtered));
+        return filtered;
+    }
+
+    deleteComment(commentId) {
+        const existsCustom = this.getCommentsFromLS().some(c => c.id === commentId);
+        if (existsCustom) {
+            this.deleteCommentFromLS(commentId);
+        } else {
+            this.markDeleted('deletedComments', commentId);
+        }
     }
 
     async getAllComments() {
-        return await this.getComments();
+        const [apiComments, lsComments] = await Promise.all([
+            this.getComments(),
+            Promise.resolve(this.getCommentsFromLS())
+        ]);
+        const deleted = this.getDeletedIds('deletedComments');
+        const filteredApi = apiComments.filter(c => !deleted.includes(c.id));
+        return [...filteredApi, ...lsComments];
     }
 }
 

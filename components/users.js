@@ -53,12 +53,9 @@ function renderUserCard(user) {
                     ${user.company ? `<p><strong>Компания:</strong> ${user.company.name}</p>` : ''}
                 </div>
                 <div>
-                    ${isCustomUser ? 
-                        `<button class="btn btn-danger delete-user-btn" data-user-id="${user.id}">
+                        <button class="btn btn-danger delete-user-btn" data-user-id="${user.id}">
                             Удалить
-                        </button>` : 
-                        ''
-                    }
+                        </button>
                 </div>
             </div>
             <div class="mt-2">
@@ -108,7 +105,7 @@ function handleDeleteUser(event) {
     const userId = parseInt(event.target.dataset.userId);
     
     if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
-        apiService.deleteUserFromLS(userId);
+        apiService.deleteUser(userId);
         router.handleRouteChange();
     }
 }
