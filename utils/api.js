@@ -51,7 +51,6 @@ class ApiService {
         }
     }
 
-    // ---------- helpers for deletions/overrides ----------
     getDeletedIds(key) {
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : [];
@@ -143,7 +142,6 @@ class ApiService {
     }
 
     toggleTodoStatus(todoId, currentCompleted) {
-        // First try custom todos
         const todos = this.getTodosFromLS();
         const idx = todos.findIndex(t => t.id === todoId);
         if (idx !== -1) {
@@ -152,7 +150,6 @@ class ApiService {
             localStorage.setItem('customTodos', JSON.stringify(todos));
             return todos[idx];
         }
-        // Save override for API todo
         const overrides = this.getOverrides('todoOverrides');
         const oIdx = overrides.findIndex(o => o.id === todoId);
         if (oIdx !== -1) {

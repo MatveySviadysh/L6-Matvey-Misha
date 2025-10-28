@@ -31,7 +31,6 @@ function handleFormClick(event) {
     }
 }
 
-// Экспорт для тестирования
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     setupFormEventListeners,
